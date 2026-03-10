@@ -18,6 +18,7 @@ buildNumber.properties
 .classpath
 .settings/
 .vscode/
+.factorypath
 *.swp
 *.swo
 *~
