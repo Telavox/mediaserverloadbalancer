@@ -1,0 +1,16 @@
+{
+  "pollingIntervalSeconds": 10,
+  "pools": {
+    "default": {
+      "servers": [
+        {"host": "ms1.example.com", "rpcPort": 9092},
+        {"host": "ms2.example.com", "rpcPort": 9092}
+      ]
+    },
+    "conference": {
+      "servers": [
+        {"host": "ms3.example.com", "rpcPort": 9092}
+      ]
+    }
+  }
+}
