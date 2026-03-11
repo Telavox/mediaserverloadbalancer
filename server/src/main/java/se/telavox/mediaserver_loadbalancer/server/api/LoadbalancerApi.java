@@ -1,5 +1,6 @@
 package se.telavox.mediaserver_loadbalancer.server.api;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -7,11 +8,15 @@ import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.GET;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+
+import com.googlecode.jsonrpc4j.JsonRpcHttpClient;
+import com.googlecode.jsonrpc4j.ProxyUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +25,8 @@ import se.telavox.mediaserver_loadbalancer.server.balancer.BalancerStrategy;
 import se.telavox.mediaserver_loadbalancer.server.polling.MediaServerPoller;
 import se.telavox.mediaserver_loadbalancer.server.polling.MediaServerState;
 import se.telavox.mediaserver_loadbalancer.shared.LoadReport;
+import se.telavox.mediaserver_loadbalancer.shared.LoadReportService;
+import se.telavox.mediaserver_loadbalancer.shared.PauseState;
 
 /**
  * JAX-RS resource exposing the loadbalancer HTTP API.
@@ -130,6 +137,70 @@ public class LoadbalancerApi {
 
         status.put("pools", poolsInfo);
         return Response.ok(status).build();
+    }
+
+    /**
+     * Sets the pause state of a specific mediaserver via JSON-RPC.
+     * <p>
+     * The loadbalancer forwards the request to the target mediaserver's
+     * {@code /rpc/loadreport} service. The server must be known to the
+     * loadbalancer (present in the pool configuration).
+     *
+     * @param host  the mediaserver host
+     * @param port  the mediaserver RPC port
+     * @param state the desired pause state (STARTING, ENABLED, PAUSED, STOPPED)
+     * @return 200 on success, 400 for bad input, 404 if the server is unknown,
+     *         502 if the RPC call to the mediaserver fails
+     */
+    @PUT
+    @Path("server/pause")
+    public Response setPauseState(@QueryParam("host") String host,
+                                  @QueryParam("port") Integer port,
+                                  @QueryParam("state") String state) {
+        if (host == null || host.isEmpty() || port == null || state == null || state.isEmpty()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(errorJson("Missing required query parameters: host, port, state"))
+                    .build();
+        }
+
+        PauseState pauseState;
+        try {
+            pauseState = PauseState.valueOf(state.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(errorJson("Invalid state: " + state
+                            + ". Valid values: STARTING, ENABLED, PAUSED, STOPPED"))
+                    .build();
+        }
+
+        String serverId = host + ":" + port;
+        MediaServerState serverState = poller.getAllServerStates().get(serverId);
+        if (serverState == null) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(errorJson("Unknown server: " + serverId))
+                    .build();
+        }
+
+        try {
+            String rpcUrl = "http://" + host + ":" + port + "/rpc/loadreport";
+            JsonRpcHttpClient client = new JsonRpcHttpClient(new URL(rpcUrl));
+            LoadReportService service = ProxyUtil.createClientProxy(
+                    getClass().getClassLoader(), LoadReportService.class, client);
+
+            service.setPauseState(pauseState);
+            log.info("Set pause state of {} to {}", serverId, pauseState);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("host", host);
+            result.put("port", port);
+            result.put("state", pauseState.name());
+            return Response.ok(result).build();
+        } catch (Throwable t) {
+            log.error("Failed to set pause state on {}: {}", serverId, t.getMessage(), t);
+            return Response.status(Response.Status.BAD_GATEWAY)
+                    .entity(errorJson("Failed to set pause state on " + serverId + ": " + t.getMessage()))
+                    .build();
+        }
     }
 
     private static Map<String, String> errorJson(String message) {
