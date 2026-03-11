@@ -18,9 +18,10 @@ import se.telavox.mediaserver_loadbalancer.shared.PauseState;
  * </pre>
  * where {@code normalizedStreamCount} is {@code rtpStreamCount / maxStreamsForNormalization}.
  * <p>
- * Servers that are not healthy, or have a pause state of {@link PauseState#PAUSED}
- * or {@link PauseState#STOPPED}, are excluded from selection. PAUSED servers
- * are still serving existing calls (draining) but will not receive new ones.
+ * Servers that are not healthy, or have a pause state other than {@link PauseState#ENABLED},
+ * are excluded from selection. {@link PauseState#STARTING} servers are still initializing,
+ * {@link PauseState#PAUSED} servers are draining existing calls, and
+ * {@link PauseState#STOPPED} servers are fully excluded.
  */
 public class WeightedScoreStrategy implements BalancerStrategy {
 
