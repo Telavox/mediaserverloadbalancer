@@ -1,4 +1,4 @@
-package se.telavox.mediaserver_loadbalancer.server.config;
+package se.telavox.mediaserverloadbalancer.server.config;
 
 import java.io.File;
 import java.io.IOException;

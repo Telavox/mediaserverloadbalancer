@@ -1,13 +1,13 @@
-package se.telavox.mediaserver_loadbalancer.server.balancer;
+package se.telavox.mediaserverloadbalancer.server.balancer;
 
 import java.util.Collection;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import se.telavox.mediaserver_loadbalancer.server.polling.MediaServerState;
-import se.telavox.mediaserver_loadbalancer.shared.LoadReport;
-import se.telavox.mediaserver_loadbalancer.shared.PauseState;
+import se.telavox.mediaserverloadbalancer.server.polling.MediaServerState;
+import se.telavox.mediaserverloadbalancer.shared.LoadReport;
+import se.telavox.mediaserverloadbalancer.shared.PauseState;
 
 /**
  * Selects the mediaserver with the lowest weighted composite score.

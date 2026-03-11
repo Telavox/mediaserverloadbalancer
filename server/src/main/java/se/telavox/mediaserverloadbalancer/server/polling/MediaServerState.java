@@ -1,7 +1,7 @@
-package se.telavox.mediaserver_loadbalancer.server.polling;
+package se.telavox.mediaserverloadbalancer.server.polling;
 
-import se.telavox.mediaserver_loadbalancer.shared.LoadReport;
-import se.telavox.mediaserver_loadbalancer.server.config.PoolConfig;
+import se.telavox.mediaserverloadbalancer.shared.LoadReport;
+import se.telavox.mediaserverloadbalancer.server.config.PoolConfig;
 
 /**
  * Holds the latest known state of a single mediaserver instance.

@@ -1,4 +1,4 @@
-package se.telavox.mediaserver_loadbalancer.server.api;
+package se.telavox.mediaserverloadbalancer.server.api;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -21,12 +21,12 @@ import com.googlecode.jsonrpc4j.ProxyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import se.telavox.mediaserver_loadbalancer.server.balancer.BalancerStrategy;
-import se.telavox.mediaserver_loadbalancer.server.polling.MediaServerPoller;
-import se.telavox.mediaserver_loadbalancer.server.polling.MediaServerState;
-import se.telavox.mediaserver_loadbalancer.shared.LoadReport;
-import se.telavox.mediaserver_loadbalancer.shared.LoadReportService;
-import se.telavox.mediaserver_loadbalancer.shared.PauseState;
+import se.telavox.mediaserverloadbalancer.server.balancer.BalancerStrategy;
+import se.telavox.mediaserverloadbalancer.server.polling.MediaServerPoller;
+import se.telavox.mediaserverloadbalancer.server.polling.MediaServerState;
+import se.telavox.mediaserverloadbalancer.shared.LoadReport;
+import se.telavox.mediaserverloadbalancer.shared.LoadReportService;
+import se.telavox.mediaserverloadbalancer.shared.PauseState;
 
 /**
  * JAX-RS resource exposing the loadbalancer HTTP API.

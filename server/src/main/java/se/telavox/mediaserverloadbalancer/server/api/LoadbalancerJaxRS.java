@@ -1,4 +1,4 @@
-package se.telavox.mediaserver_loadbalancer.server.api;
+package se.telavox.mediaserverloadbalancer.server.api;
 
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.handler.HandlerCollection;
@@ -9,8 +9,8 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
 
 import se.telavox.base.Base;
-import se.telavox.mediaserver_loadbalancer.server.balancer.BalancerStrategy;
-import se.telavox.mediaserver_loadbalancer.server.polling.MediaServerPoller;
+import se.telavox.mediaserverloadbalancer.server.balancer.BalancerStrategy;
+import se.telavox.mediaserverloadbalancer.server.polling.MediaServerPoller;
 
 /**
  * Jersey application configuration for the loadbalancer HTTP API.

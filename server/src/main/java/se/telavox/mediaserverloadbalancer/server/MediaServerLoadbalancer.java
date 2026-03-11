@@ -1,4 +1,4 @@
-package se.telavox.mediaserver_loadbalancer.server;
+package se.telavox.mediaserverloadbalancer.server;
 
 import java.io.File;
 
@@ -9,11 +9,11 @@ import org.slf4j.LoggerFactory;
 
 import se.telavox.base.Base;
 import se.telavox.base.BaseConfig;
-import se.telavox.mediaserver_loadbalancer.server.api.LoadbalancerJaxRS;
-import se.telavox.mediaserver_loadbalancer.server.balancer.BalancerStrategy;
-import se.telavox.mediaserver_loadbalancer.server.balancer.WeightedScoreStrategy;
-import se.telavox.mediaserver_loadbalancer.server.config.PoolConfig;
-import se.telavox.mediaserver_loadbalancer.server.polling.MediaServerPoller;
+import se.telavox.mediaserverloadbalancer.server.api.LoadbalancerJaxRS;
+import se.telavox.mediaserverloadbalancer.server.balancer.BalancerStrategy;
+import se.telavox.mediaserverloadbalancer.server.balancer.WeightedScoreStrategy;
+import se.telavox.mediaserverloadbalancer.server.config.PoolConfig;
+import se.telavox.mediaserverloadbalancer.server.polling.MediaServerPoller;
 
 /**
  * Main entry point for the Mediaserver Loadbalancer service.
@@ -30,7 +30,7 @@ public class MediaServerLoadbalancer extends Base {
 
     private static final Logger log = LoggerFactory.getLogger(MediaServerLoadbalancer.class);
 
-    private static final String APP_NAME = "mediaserver_loadbalancer";
+    private static final String APP_NAME = "mediaserverloadbalancer";
     private static final int HTTP_PORT = 8102;
 
     private MediaServerPoller poller;
@@ -80,7 +80,7 @@ public class MediaServerLoadbalancer extends Base {
      * <ol>
      *   <li>Path specified by system property {@code pools.config}</li>
      *   <li>{@code pools.json} in the current working directory</li>
-     *   <li>{@code /etc/mediaserver_loadbalancer/pools.json}</li>
+     *   <li>{@code /etc/mediaserverloadbalancer/pools.json}</li>
      * </ol>
      *
      * @return the configuration file
@@ -103,7 +103,7 @@ public class MediaServerLoadbalancer extends Base {
             return local;
         }
 
-        File etc = new File("/etc/mediaserver_loadbalancer/pools.json");
+        File etc = new File("/etc/mediaserverloadbalancer/pools.json");
         if (etc.isFile()) {
             log.info("Using pool config from /etc: {}", etc.getAbsolutePath());
             return etc;
@@ -111,7 +111,7 @@ public class MediaServerLoadbalancer extends Base {
 
         throw new IllegalStateException(
                 "No pool configuration file found. Provide pools.json in the working directory, "
-                + "at /etc/mediaserver_loadbalancer/pools.json, or set -Dpools.config=<path>");
+                + "at /etc/mediaserverloadbalancer/pools.json, or set -Dpools.config=<path>");
     }
 
     @Override

@@ -1,4 +1,4 @@
-package se.telavox.mediaserver_loadbalancer.shared;
+package se.telavox.mediaserverloadbalancer.shared;
 
 /**
  * JSON-RPC service interface for load reporting and state control on a mediaserver.

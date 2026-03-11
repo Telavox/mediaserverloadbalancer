@@ -3,7 +3,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>se.telavox.mediaserver_loadbalancer</groupId>
+    <groupId>se.telavox.mediaserverloadbalancer</groupId>
     <artifactId>parent</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -33,7 +33,7 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>se.telavox.mediaserver_loadbalancer</groupId>
+                <groupId>se.telavox.mediaserverloadbalancer</groupId>
                 <artifactId>shared</artifactId>
                 <version>${project.version}</version>
             </dependency>

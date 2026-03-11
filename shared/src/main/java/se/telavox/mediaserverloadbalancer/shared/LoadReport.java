@@ -1,4 +1,4 @@
-package se.telavox.mediaserver_loadbalancer.shared;
+package se.telavox.mediaserverloadbalancer.shared;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

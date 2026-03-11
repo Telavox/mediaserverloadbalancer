@@ -1,8 +1,8 @@
-package se.telavox.mediaserver_loadbalancer.server.balancer;
+package se.telavox.mediaserverloadbalancer.server.balancer;
 
 import java.util.Collection;
 
-import se.telavox.mediaserver_loadbalancer.server.polling.MediaServerState;
+import se.telavox.mediaserverloadbalancer.server.polling.MediaServerState;
 
 /**
  * Strategy interface for selecting the best mediaserver from a set of

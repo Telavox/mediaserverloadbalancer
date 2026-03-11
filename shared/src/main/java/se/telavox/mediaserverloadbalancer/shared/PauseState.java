@@ -1,4 +1,4 @@
-package se.telavox.mediaserver_loadbalancer.shared;
+package se.telavox.mediaserverloadbalancer.shared;
 
 /**
  * Represents the operational state of a mediaserver instance.

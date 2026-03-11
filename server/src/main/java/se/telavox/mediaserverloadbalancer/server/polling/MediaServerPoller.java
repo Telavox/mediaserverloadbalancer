@@ -1,4 +1,4 @@
-package se.telavox.mediaserver_loadbalancer.server.polling;
+package se.telavox.mediaserverloadbalancer.server.polling;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -17,9 +17,9 @@ import com.googlecode.jsonrpc4j.ProxyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import se.telavox.mediaserver_loadbalancer.server.config.PoolConfig;
-import se.telavox.mediaserver_loadbalancer.shared.LoadReport;
-import se.telavox.mediaserver_loadbalancer.shared.LoadReportService;
+import se.telavox.mediaserverloadbalancer.server.config.PoolConfig;
+import se.telavox.mediaserverloadbalancer.shared.LoadReport;
+import se.telavox.mediaserverloadbalancer.shared.LoadReportService;
 
 /**
  * Periodically polls all configured mediaservers for their load reports
