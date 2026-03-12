@@ -9,8 +9,11 @@ import org.slf4j.LoggerFactory;
 
 import se.telavox.base.Base;
 import se.telavox.base.BaseConfig;
+import se.telavox.configurator.client.ConfiguratorClient;
+import se.telavox.configurator.client.StringProperty;
 import se.telavox.mediaserverloadbalancer.server.api.LoadbalancerJaxRS;
 import se.telavox.mediaserverloadbalancer.server.balancer.BalancerStrategy;
+import se.telavox.mediaserverloadbalancer.server.balancer.ThresholdStrategy;
 import se.telavox.mediaserverloadbalancer.server.balancer.WeightedScoreStrategy;
 import se.telavox.mediaserverloadbalancer.server.config.PoolConfig;
 import se.telavox.mediaserverloadbalancer.server.polling.MediaServerPoller;
@@ -36,6 +39,8 @@ public class MediaServerLoadbalancer extends Base {
     private MediaServerPoller poller;
     private LoadbalancerJaxRS jaxrs;
 
+    private StringProperty strategyProperty;
+
     public static void main(String[] args) throws Exception {
         new MediaServerLoadbalancer(args);
     }
@@ -59,8 +64,13 @@ public class MediaServerLoadbalancer extends Base {
         File poolConfigFile = resolvePoolConfigFile();
         PoolConfig poolConfig = PoolConfig.load(poolConfigFile);
 
-        // Create the balancer strategy
-        BalancerStrategy strategy = new WeightedScoreStrategy();
+        // Register configurator properties for live updates
+        ConfiguratorClient configClient = getConfigClient();
+        strategyProperty = configClient.stringProperty(
+                "mediaserverloadbalancer.strategy", "ThresholdStrategy");
+
+        // Create the balancer strategy (reads properties dynamically on each select)
+        BalancerStrategy strategy = createStrategy(configClient);
 
         // Start the poller
         poller = new MediaServerPoller(poolConfig);
@@ -71,6 +81,32 @@ public class MediaServerLoadbalancer extends Base {
         jaxrs.load();
 
         log.info("{} started on port {}", APP_NAME, HTTP_PORT);
+    }
+
+    /**
+     * Creates a {@link BalancerStrategy} that delegates to the appropriate implementation
+     * based on the live configurator property {@code mediaserverloadbalancer.strategy}.
+     * <p>
+     * The returned strategy reads property values on each {@code select()} call,
+     * so configuration changes take effect without restarting.
+     */
+    private BalancerStrategy createStrategy(ConfiguratorClient configClient) {
+        WeightedScoreStrategy weightedScore = new WeightedScoreStrategy();
+        ThresholdStrategy threshold = new ThresholdStrategy(configClient);
+
+        return candidates -> {
+            String strategyName = strategyProperty.get();
+
+            if ("WeightedScoreStrategy".equals(strategyName)) {
+                return weightedScore.select(candidates);
+            }
+
+            if (!"ThresholdStrategy".equals(strategyName)) {
+                log.warn("Unknown strategy '{}', falling back to ThresholdStrategy", strategyName);
+            }
+
+            return threshold.select(candidates);
+        };
     }
 
     /**
