@@ -1,6 +1,6 @@
 # Mediaserver Loadbalancer
 
-A load balancer for distributing media sessions across a pool of media servers. It periodically polls each server for resource metrics (CPU, memory, active RTP streams) and selects the least-loaded server on demand using a weighted scoring algorithm.
+A load balancer for distributing media sessions across a pool of media servers. It periodically polls each server for resource metrics (CPU, memory, active RTP streams) and selects the best available server on demand using a configurable balancing strategy.
 
 ## Architecture
 
@@ -18,8 +18,8 @@ A load balancer for distributing media sessions across a pool of media servers. 
                   │  JSON-RPC                               │  uses
                   │  getLoadReport()                        │  BalancerStrategy
                   v                                        v
-         ┌───────────────┐                        WeightedScoreStrategy
-         │ Media Server 1 │                       (select least-loaded)
+         ┌───────────────┐                        ThresholdStrategy (default)
+         │ Media Server 1 │                       WeightedScoreStrategy
          │ Media Server 2 │
          │ ...            │
          └───────────────┘
@@ -36,10 +36,22 @@ A load balancer for distributing media sessions across a pool of media servers. 
 
 - **MediaServerLoadbalancer** — Main entry point. Loads pool config, starts the poller, and registers the REST API on Jetty.
 - **MediaServerPoller** — Periodically calls `getLoadReport()` on every configured media server via JSON-RPC and maintains per-server state (`MediaServerState`).
-- **WeightedScoreStrategy** — Selects the server with the lowest composite score. Only servers that are both healthy and in the `ENABLED` pause state are considered.
+- **ThresholdStrategy** (default) — Filters out servers exceeding CPU or memory thresholds, then selects the one with the fewest RTP streams. Thresholds are configurable at runtime via the configurator.
+- **WeightedScoreStrategy** — Selects the server with the lowest weighted composite score across CPU, memory, and stream count.
 - **LoadbalancerApi** — JAX-RS resource exposing REST endpoints for server selection, status, and pause state control.
 
-## Load Balancing Algorithm
+## Load Balancing Strategies
+
+The active strategy is selected by the configurator property `mediaserverloadbalancer.strategy` and can be changed at runtime without restarting. Both strategies exclude servers that are unreachable, have no load report, or are not in the `ENABLED` pause state.
+
+### ThresholdStrategy (default)
+
+1. Filter out servers with `cpuUsage > threshold` or `memoryUsage > threshold`
+2. From the remaining servers, select the one with the **lowest `rtpStreamCount`**
+
+Thresholds are configurable at runtime via the configurator (see [Configurator Properties](#configurator-properties)).
+
+### WeightedScoreStrategy
 
 Each candidate server is scored as:
 
@@ -47,7 +59,7 @@ Each candidate server is scored as:
 score = 0.4 × cpuUsage + 0.3 × memoryUsage + 0.3 × min(1.0, rtpStreamCount / 500)
 ```
 
-The server with the **lowest** score is selected. Servers that are unreachable, have no load report, or are not in the `ENABLED` state are excluded.
+The server with the **lowest** score is selected.
 
 ## Pause States
 
@@ -176,6 +188,16 @@ The pool configuration is loaded from the first file found in this order:
 | `pools` | — | Named groups of media servers |
 | `servers[].host` | — | Media server hostname |
 | `servers[].rpcPort` | 9092 | JSON-RPC port on the media server |
+
+## Configurator Properties
+
+The following properties can be changed at runtime via the Telavox configurator without restarting the service:
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `mediaserverloadbalancer.strategy` | `ThresholdStrategy` | Active balancing strategy (`ThresholdStrategy` or `WeightedScoreStrategy`) |
+| `mediaserverloadbalancer.strategy.thresholdstrategy.threshold.cpu` | `0.7` | Maximum CPU usage (0.0-1.0) before a server is excluded by ThresholdStrategy |
+| `mediaserverloadbalancer.strategy.thresholdstrategy.threshold.memory` | `0.7` | Maximum memory usage (0.0-1.0) before a server is excluded by ThresholdStrategy |
 
 ## Building
 
