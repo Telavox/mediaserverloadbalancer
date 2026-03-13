@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import se.telavox.base.Base;
 import se.telavox.base.BaseConfig;
 import se.telavox.configurator.client.ConfiguratorClient;
+import se.telavox.configurator.client.InnerConfigProperty;
 import se.telavox.configurator.client.StringProperty;
 import se.telavox.mediaserverloadbalancer.server.api.LoadbalancerJaxRS;
 import se.telavox.mediaserverloadbalancer.server.balancer.BalancerStrategy;
@@ -24,7 +25,8 @@ import se.telavox.mediaserverloadbalancer.server.polling.MediaServerPoller;
  * Extends {@link Base} to leverage the standard Telavox service infrastructure
  * (HTTP server, heartbeat, grapher, configuration). On startup it:
  * <ol>
- *   <li>Loads pool configuration from a JSON file</li>
+ *   <li>Loads pool configuration from ConfiguratorClient, or from a local
+ *       {@code pools.json} file if present (file takes precedence)</li>
  *   <li>Starts the mediaserver poller to periodically collect load reports</li>
  *   <li>Registers the HTTP API for SIP-server queries</li>
  * </ol>
@@ -35,11 +37,13 @@ public class MediaServerLoadbalancer extends Base {
 
     private static final String APP_NAME = "mediaserverloadbalancer";
     private static final int HTTP_PORT = 8102;
+    private static final String POOLS_PROPERTY = "mediaserverloadbalancer.pools";
 
     private MediaServerPoller poller;
     private LoadbalancerJaxRS jaxrs;
 
     private StringProperty strategyProperty;
+    private boolean usingFileConfig;
 
     public static void main(String[] args) throws Exception {
         new MediaServerLoadbalancer(args);
@@ -60,14 +64,13 @@ public class MediaServerLoadbalancer extends Base {
         super.init(APP_NAME, HTTP_PORT, args, config);
         log.info("Initializing {}", APP_NAME);
 
-        // Load pool configuration
-        File poolConfigFile = resolvePoolConfigFile();
-        PoolConfig poolConfig = PoolConfig.load(poolConfigFile);
-
         // Register configurator properties for live updates
         ConfiguratorClient configClient = getConfigClient();
         strategyProperty = configClient.stringProperty(
                 "mediaserverloadbalancer.strategy", "ThresholdStrategy");
+
+        // Load pool configuration: file override takes precedence over configurator
+        PoolConfig poolConfig = loadPoolConfig(configClient);
 
         // Create the balancer strategy (reads properties dynamically on each select)
         BalancerStrategy strategy = createStrategy(configClient);
@@ -76,11 +79,48 @@ public class MediaServerLoadbalancer extends Base {
         poller = new MediaServerPoller(poolConfig);
         poller.start();
 
+        // If using configurator (no file override), listen for live config updates
+        if (!usingFileConfig) {
+            registerConfiguratorListener(configClient);
+        }
+
         // Register the HTTP API
         jaxrs = new LoadbalancerJaxRS(this, poller, strategy);
         jaxrs.load();
 
         log.info("{} started on port {}", APP_NAME, HTTP_PORT);
+    }
+
+    /**
+     * Loads pool configuration, preferring a local file if present,
+     * otherwise falling back to the ConfiguratorClient property
+     * {@value #POOLS_PROPERTY}.
+     */
+    private PoolConfig loadPoolConfig(ConfiguratorClient configClient) throws Exception {
+        File poolConfigFile = resolvePoolConfigFile();
+        if (poolConfigFile != null) {
+            usingFileConfig = true;
+            log.info("Using pools.json file override — configurator property '{}' will be ignored", POOLS_PROPERTY);
+            return PoolConfig.load(poolConfigFile);
+        }
+
+        usingFileConfig = false;
+        log.info("No pools.json file found — reading pool configuration from configurator property '{}'", POOLS_PROPERTY);
+        InnerConfigProperty poolsProperty = configClient.innerConfigProperty(POOLS_PROPERTY);
+        return PoolConfig.fromConfig(poolsProperty.get());
+    }
+
+    /**
+     * Registers a listener on the configurator property so that pool
+     * configuration changes are picked up at runtime without a restart.
+     */
+    private void registerConfiguratorListener(ConfiguratorClient configClient) {
+        InnerConfigProperty poolsProperty = configClient.innerConfigProperty(POOLS_PROPERTY);
+        poolsProperty.addUpdateListener((oldConfig, newConfig) -> {
+            log.info("Configurator property '{}' updated — reloading pool configuration", POOLS_PROPERTY);
+            PoolConfig updated = PoolConfig.fromConfig(newConfig);
+            poller.updateConfig(updated);
+        });
     }
 
     /**
@@ -110,17 +150,19 @@ public class MediaServerLoadbalancer extends Base {
     }
 
     /**
-     * Resolves the pool configuration file.
+     * Searches for a {@code pools.json} file in well-known locations.
      * <p>
-     * Searches for {@code pools.json} in the following locations (in order):
+     * Returns {@code null} if no file is found (caller should fall back
+     * to ConfiguratorClient).
+     * <p>
+     * Search order:
      * <ol>
      *   <li>Path specified by system property {@code pools.config}</li>
      *   <li>{@code pools.json} in the current working directory</li>
      *   <li>{@code /etc/mediaserverloadbalancer/pools.json}</li>
      * </ol>
      *
-     * @return the configuration file
-     * @throws IllegalStateException if no configuration file is found
+     * @return the configuration file, or {@code null} if not found
      */
     private File resolvePoolConfigFile() {
         String configPath = System.getProperty("pools.config");
@@ -145,9 +187,7 @@ public class MediaServerLoadbalancer extends Base {
             return etc;
         }
 
-        throw new IllegalStateException(
-                "No pool configuration file found. Provide pools.json in the working directory, "
-                + "at /etc/mediaserverloadbalancer/pools.json, or set -Dpools.config=<path>");
+        return null;
     }
 
     @Override

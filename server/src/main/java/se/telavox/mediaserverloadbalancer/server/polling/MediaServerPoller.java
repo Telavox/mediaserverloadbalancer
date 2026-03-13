@@ -138,6 +138,44 @@ public class MediaServerPoller {
     }
 
     /**
+     * Replaces the current pool configuration with new settings.
+     * <p>
+     * Adds states for any new servers, removes states for servers that no
+     * longer appear in any pool, and updates the pool-to-server mappings.
+     *
+     * @param newConfig the new pool configuration
+     */
+    public void updateConfig(PoolConfig newConfig) {
+        Map<String, List<String>> newPoolToServerIds = new ConcurrentHashMap<>();
+        Map<String, PoolConfig.ServerEntry> newServerEntries = new ConcurrentHashMap<>();
+
+        for (Map.Entry<String, PoolConfig.Pool> entry : newConfig.getPools().entrySet()) {
+            String poolName = entry.getKey();
+            PoolConfig.Pool pool = entry.getValue();
+            List<String> serverIds = new ArrayList<>();
+
+            for (PoolConfig.ServerEntry server : pool.getServers()) {
+                String id = server.getId();
+                serverIds.add(id);
+                newServerEntries.put(id, server);
+                serverStates.computeIfAbsent(id, k -> new MediaServerState(server));
+            }
+
+            newPoolToServerIds.put(poolName, Collections.unmodifiableList(serverIds));
+        }
+
+        // Remove servers that are no longer in any pool
+        serverStates.keySet().removeIf(id -> !newServerEntries.containsKey(id));
+
+        // Replace pool mappings atomically
+        poolToServerIds.clear();
+        poolToServerIds.putAll(newPoolToServerIds);
+
+        log.info("Updated pool configuration: {} unique server(s) across {} pool(s)",
+                serverStates.size(), poolToServerIds.size());
+    }
+
+    /**
      * Returns the current states for all servers in the given pool.
      *
      * @param poolName the pool name

@@ -2,7 +2,9 @@ package se.telavox.mediaserverloadbalancer.server.config;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +13,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import se.telavox.configurator.shared.Config;
 
 /**
  * Represents the static pool configuration loaded from a JSON file.
@@ -73,8 +77,55 @@ public class PoolConfig {
         log.info("Loading pool configuration from {}", file.getAbsolutePath());
         ObjectMapper mapper = new ObjectMapper();
         PoolConfig config = mapper.readValue(file, PoolConfig.class);
-        log.info("Loaded {} pool(s): {}", config.pools.size(), config.pools.keySet());
+        log.info("Loaded {} pool(s) from file: {}", config.pools.size(), config.pools.keySet());
         return config;
+    }
+
+    /**
+     * Builds a pool configuration from a ConfiguratorClient {@link Config}.
+     * <p>
+     * Expected format (same structure as the telcoloadbalancer property
+     * {@code tele_conference.loadbalancer.telcos}):
+     * <pre>
+     * {
+     *   "poolName": {
+     *     "serverName1": { "host": "ms1.example.com", "rpcPort": 9092 },
+     *     "serverName2": { "host": "ms2.example.com", "rpcPort": 9092 }
+     *   },
+     *   "anotherPool": { ... }
+     * }
+     * </pre>
+     *
+     * @param config the configurator config
+     * @return the parsed configuration
+     */
+    public static PoolConfig fromConfig(Config config) {
+        PoolConfig poolConfig = new PoolConfig();
+        Map<String, Pool> pools = new HashMap<>();
+
+        for (String poolName : config.keys()) {
+            Config poolSection = config.getInnerConfig(poolName, Config.NULL);
+            Pool pool = new Pool();
+            List<ServerEntry> servers = new ArrayList<>();
+
+            for (String serverName : poolSection.keys()) {
+                Config serverSection = poolSection.getInnerConfig(serverName, Config.NULL);
+                String host = serverSection.getString("host", null);
+                if (host == null) {
+                    log.warn("Skipping server '{}' in pool '{}': missing host", serverName, poolName);
+                    continue;
+                }
+                int rpcPort = serverSection.getInteger("rpcPort", 9092);
+                servers.add(new ServerEntry(host, rpcPort));
+            }
+
+            pool.setServers(servers);
+            pools.put(poolName, pool);
+        }
+
+        poolConfig.setPools(pools);
+        log.info("Loaded {} pool(s) from configurator: {}", pools.size(), pools.keySet());
+        return poolConfig;
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
