@@ -9,6 +9,12 @@
     <packaging>pom</packaging>
     <name>Mediaserver Loadbalancer</name>
 
+    <parent>
+        <groupId>se.telavox</groupId>
+        <artifactId>masterpom</artifactId>
+        <version>5</version>
+    </parent>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>21</maven.compiler.source>
