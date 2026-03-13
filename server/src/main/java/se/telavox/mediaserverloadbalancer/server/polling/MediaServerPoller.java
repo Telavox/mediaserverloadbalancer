@@ -47,7 +47,7 @@ public class MediaServerPoller {
     /**
      * Pool name to list of server IDs, for fast lookup.
      */
-    private final Map<String, List<String>> poolToServerIds = new ConcurrentHashMap<>();
+    private volatile Map<String, List<String>> poolToServerIds = new ConcurrentHashMap<>();
 
     public MediaServerPoller(PoolConfig poolConfig) {
         this.poolConfig = poolConfig;
@@ -168,8 +168,7 @@ public class MediaServerPoller {
         serverStates.keySet().removeIf(id -> !newServerEntries.containsKey(id));
 
         // Replace pool mappings atomically
-        poolToServerIds.clear();
-        poolToServerIds.putAll(newPoolToServerIds);
+        poolToServerIds = newPoolToServerIds;
 
         log.info("Updated pool configuration: {} unique server(s) across {} pool(s)",
                 serverStates.size(), poolToServerIds.size());
