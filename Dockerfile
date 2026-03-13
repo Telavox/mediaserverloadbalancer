@@ -6,7 +6,6 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-COPY server/target/lib /app/lib
 COPY server/target/server-1.0-SNAPSHOT.jar /app/mediaserverloadbalancer.jar
 
 CMD ["java", "-cp", "mediaserverloadbalancer.jar:lib/*", "se.telavox.mediaserverloadbalancer.server.MediaServerLoadbalancer"]
